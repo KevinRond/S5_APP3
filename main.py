@@ -21,6 +21,8 @@ def getSignalParameters(soundFilePath):
     harm_freqs = [freqs[i] for i in index_harms]
     harmonics = [np.abs(X[i]) for i in index_harms]
     phases = [np.angle(X[i]) for i in index_harms]
+
+    plotSignal(x, X, harmonics, harm_freqs, phases)
     return x, fs, fundamental, harm_freqs, harmonics, phases
 
 def applyLowpassFilter(signal_data, N):
@@ -66,6 +68,12 @@ def generateNotes(lad_freq):
 
     return frequencies
 
+def synthesizeAllNotesAudio(fs, harmonics, frequencies, phases, enveloppe):
+    for frequency in frequencies:
+        audio = synthesizeNoteAudio(fs, harmonics, frequencies[frequency], phases, enveloppe)
+        createWav(audio, fs, f"{frequency}.wav")
+
+
 def synthesizeNoteAudio(fs, harmonics, note_freq, phases, enveloppe, duration=2):
     ts = np.linspace(0, duration, int(fs * duration))
     audio = []
@@ -77,7 +85,8 @@ def synthesizeNoteAudio(fs, harmonics, note_freq, phases, enveloppe, duration=2)
         audio.append(total)
 
     new_env = enveloppe[0:len(audio)]
-    new_env[-int(0.01 * fs):] = np.linspace(new_env[-int(0.01 * fs)], 0, int(0.01 * fs))
+    # new_env[-int(0.01 * fs):] = np.linspace(new_env[-int(0.01 * fs)], 0, int(0.01 * fs))
+
     audio = np.multiply(audio, new_env)
 
     return audio
@@ -89,7 +98,7 @@ def createWav(audio, sampleRate, filename):
     with wave.open(filename, "w") as wav:
         nchannels = 1
         sampwidth = 2
-        nframes   = len(audio)
+        nframes = len(audio)
         wav.setparams((nchannels, sampwidth, sampleRate, nframes, "NONE", "not compressed"))
 
         for sample in audio:
@@ -143,6 +152,45 @@ def filter1kWave():
 
     createWav(audio, rate, "basson_filtre.wav")
 
+def plotSignal(x, X, harmonics, harmonic_frequencies, phases):
+    fig, ((signalPlt, fftPlt), (harmAmpPlt, harmPhasesPlt)) = plt.subplots(2, 2, figsize=(16, 8))
+
+    signalPlt.plot(x)
+    signalPlt.set_title("Signal initial")
+    signalPlt.set_xlabel("Échantillons")
+    signalPlt.set_ylabel("Amplitude")
+
+    fftPlt.stem(np.abs(X))
+    fftPlt.set_title("FFT du signal initial")
+    fftPlt.set_xlabel("Fréquence")
+    fftPlt.set_xlim(0, len(X) // 2)
+    fftPlt.set_ylabel("Amplitude")
+    fftPlt.set_yscale("log")
+
+    harmAmpPlt.stem(harmonic_frequencies, harmonics)
+    harmAmpPlt.set_title("Amplitude des harmoniques")
+    harmAmpPlt.set_xlabel("Fréquence")
+    harmAmpPlt.set_ylabel("Amplitude")
+
+    harmPhasesPlt.stem(harmonic_frequencies, phases)
+    harmPhasesPlt.set_title("Phase des harmoniques")
+    harmPhasesPlt.set_xlabel("Fréquence")
+    harmPhasesPlt.set_ylabel("Phase")
+
+    plt.tight_layout(pad=1.0)
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    tableContent = []
+    for i in range(len(harmonics)):
+        tableContent.append([harmonic_frequencies[i], harmonics[i], phases[i]])
+    table = ax.table(cellText=tableContent, colLabels=["Fréquence (Hz)", "Amplitude", "Phase"], loc="center")
+    ax.axis('off')
+    table.get_celld()[(0, 0)].set_text_props(weight="bold")
+    table.get_celld()[(0, 1)].set_text_props(weight="bold")
+    table.get_celld()[(0, 2)].set_text_props(weight="bold")
+
+    plt.show()
 
 filter1kWave()
 
@@ -153,55 +201,5 @@ enveloppeTemporelle = applyLowpassFilter(signal, filterOrder)
 
 noteFrequencies = generateNotes(fundamental)
 
-synthetizeBeethoven(fs, harmonics, phases, enveloppeTemporelle)
-
-# LaD_audio = synthesizeNoteAudio(fs, harmonics, fundamental, phases, enveloppeTemporelle)
-# do_audio = synthesizeNoteAudio(fs, harmonics, noteFrequencies["do"], phases, enveloppeTemporelle)
-# re_audio = synthesizeNoteAudio(fs, harmonics, noteFrequencies["re"], phases, enveloppeTemporelle)
-# mi_audio = synthesizeNoteAudio(fs, harmonics, noteFrequencies["mi"], phases, enveloppeTemporelle, 1)
-# fa_audio = synthesizeNoteAudio(fs, harmonics, noteFrequencies["fa"], phases, enveloppeTemporelle)
-#
-# createWav(LaD_audio, fs, "laD.wav")
-# createWav(do_audio, fs, "do.wav")
-# createWav(re_audio, fs, "re.wav")
-# createWav(mi_audio, fs, "mi.wav")
-# createWav(fa_audio, fs, "fa.wav")
-
-
-# FONCTION AFFICHER PLOTS ##########################################
-
-# fig, (frams, fft) = plt.subplots(2)
-# fig, (harm, phas) = plt.subplots(2)
-#
-# frams.plot(x)
-# # frams.set_xlim(0, 140000)
-# frams.set_title("Échantillons audios initiaux")
-# frams.set_xlabel("Échantillons")
-# frams.set_ylabel("Amplitude (normalisée à 1)")
-#
-# fft.stem(np.real(X))
-# fft.set_xlim(0, len(X) // 2)
-# fft.set_yscale("log")
-# fft.set_title("FFT du signal")
-# fft.set_xlabel("Échantillons fréquentiels")
-# fft.set_ylabel("Amplitude")
-#
-# harm.stem(harm_freqs, harmonics)
-# harm.set_yscale("log")
-# harm.set_title("Amplitude des harmoniques")
-# harm.set_xlabel("Fréquence (Hz)")
-# harm.set_ylabel("Amplitude")
-# phas.stem(harm_freqs, phases)
-# phas.set_title("Phase des harmoniques")
-# phas.set_xlabel("Fréquence (Hz)")
-# phas.set_ylabel("Amplitude")
-#
-# plt.show()
-
-# FIN FONCTION AFFICHER PLOTS ##########################################
-
-# plt.subplot(2, 1, 1)
-# plt.plot(x)
-# plt.subplot(2, 1, 2)
-# plt.plot(new_x)
-# plt.show()
+# synthetizeBeethoven(fs, harmonics, phases, enveloppeTemporelle)
+# synthesizeAllNotesAudio(fs, harmonics, noteFrequencies, phases, enveloppeTemporelle)
