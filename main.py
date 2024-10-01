@@ -25,8 +25,9 @@ def getSignalParameters(soundFilePath):
     plotSignal(x, X, harmonics, harm_freqs, phases)
     return x, fs, fundamental, harm_freqs, harmonics, phases
 
+
 def applyLowpassFilter(signal_data, N):
-    lowpassFilter = [1/N] * N
+    lowpassFilter = [1 / N] * N
     window = np.hanning(N)
     lowpassFilter = lowpassFilter * window
     enveloppeTemporelle = np.convolve(lowpassFilter, np.abs(signal_data))
@@ -39,22 +40,25 @@ def applyLowpassFilter(signal_data, N):
 
     return enveloppeTemporelle
 
+
 def findNearestGainIndex(array, value):
     return (np.abs(array - value)).argmin()
 
+
 def getFilterOrder(w):
-    gain = np.power(10, -3/20)
+    gain = np.power(10, -3 / 20)
     hGain = []
     for N in range(1, 1000, 1):
         sum = 0
         for n in range(N):
-            sum += np.exp(-1j*w*n)
-        hGain.append(np.abs(sum) * 1/N)
+            sum += np.exp(-1j * w * n)
+        hGain.append(np.abs(sum) * 1 / N)
 
     N = findNearestGainIndex(hGain, gain)
 
     print("Ordre du filtre: ", N)
     return N
+
 
 def generateNotes(lad_freq):
     la_freq = lad_freq / 1.06
@@ -75,6 +79,7 @@ def generateNotes(lad_freq):
     }
 
     return frequencies
+
 
 def synthesizeAllNotesAudio(fs, harmonics, frequencies, phases, enveloppe):
     for frequency in frequencies:
@@ -99,9 +104,9 @@ def synthesizeNoteAudio(fs, harmonics, note_freq, phases, enveloppe, duration=2)
 
     return audio
 
+
 def createWav(audio, sampleRate, filename):
     audio = np.int16(audio / np.max(np.abs(audio)) * 32767)  # normalize to 16-bit PCM
-
 
     with wave.open(filename, "w") as wav:
         nchannels = 1
@@ -112,8 +117,10 @@ def createWav(audio, sampleRate, filename):
         for sample in audio:
             wav.writeframes(struct.pack('h', sample))
 
-def createSilence(sampleRate, duration_s = 1):
-    return [0 for t in np.linspace(0, duration_s , int(sampleRate * duration_s))]
+
+def createSilence(sampleRate, duration_s=1):
+    return [0 for t in np.linspace(0, duration_s, int(sampleRate * duration_s))]
+
 
 def synthesizeBeethoven(fs, harmonics, phases, enveloppe):
     solAudio = synthesizeNoteAudio(fs, harmonics, noteFrequencies["sol"], phases, enveloppe, 0.4)
@@ -121,22 +128,25 @@ def synthesizeBeethoven(fs, harmonics, phases, enveloppe):
     faAudio = synthesizeNoteAudio(fs, harmonics, noteFrequencies["fa"], phases, enveloppe, 0.4)
     reAudio = synthesizeNoteAudio(fs, harmonics, noteFrequencies["re"], phases, enveloppe, 1.5)
 
-    silence = np.zeros(int(fs*0.2))
+    silence = np.zeros(int(fs * 0.2))
 
     fullAudio = np.concatenate((solAudio, silence, solAudio, silence, solAudio, silence, miAudio, silence,
                                 faAudio, silence, faAudio, silence, faAudio, silence, reAudio), axis=None)
 
     createWav(fullAudio, fs, "5thSymphony.wav")
 
+
 def passe_bas(n, N, K):
-    hn = np.sin(np.pi*n*K/N)/(N*np.sin(np.pi*n/N))
+    hn = np.sin(np.pi * n * K / N) / (N * np.sin(np.pi * n / N))
     return hn
 
+
 def coupe_bande(n, N, K, w0):
-    cb = 1-2*K/N
-    if n!=0:
-        cb = -2*passe_bas(n, N, K)*np.cos(w0*n)
+    cb = 1 - 2 * K / N
+    if n != 0:
+        cb = -2 * passe_bas(n, N, K) * np.cos(w0 * n)
     return cb
+
 
 def filter1kWave():
     audio, rate = sf.read("./note_basson_plus_sinus_1000_hz.wav")
@@ -157,14 +167,14 @@ def filter1kWave():
     filtre = filtre * window
 
     audioFiltered = np.convolve(filtre, audio)
-    plotSignalBasson(audio, audioFiltered, enveloppeTemporelle)
+    # plotSignalBasson(audio, audioFiltered)
 
     createWav(audioFiltered, rate, "basson_filtre.wav")
 
 
-def plotSignalBasson(xUnfiltered, xFiltered, enveloppeTemporelle):
+def plotSignalBasson(xUnfiltered, xFiltered):
     fig, (original, filtered) = plt.subplots(2, figsize=(16, 8))
-    fig, (fftOriginal, fftFiltered) = plt.subplots(2, figsize=(16, 8))
+    fig, (pltFftOriginal, pltFftFiltered) = plt.subplots(2, figsize=(16, 8))
     fftUnfiltered = np.fft.fft(xUnfiltered)
     fftFiltered = np.fft.fft(xFiltered)
 
@@ -172,11 +182,15 @@ def plotSignalBasson(xUnfiltered, xFiltered, enveloppeTemporelle):
 
     filtered.plot(xFiltered)
 
-    fig, ax = plt.subplots(1)
-    ax.plot(enveloppeTemporelle)
-    ax.set_title("Enveloppe temporelle du basson")
-    ax.set_xlabel("Échantillons")
-    ax.set_ylabel("Amplitude")
+    # pltFftOriginal.stem(np.fft.fftshift(np.abs(fftUnfiltered)))
+
+    # pltFftFiltered.stem(np.fft.fftshift(np.abs(fftFiltered)))
+
+    # fig, ax = plt.subplots(1)
+    # ax.plot(enveloppeTemporelle)
+    # ax.set_title("Enveloppe temporelle du basson")
+    # ax.set_xlabel("Échantillons")
+    # ax.set_ylabel("Amplitude")
 
 
 def plotSignal(x, X, harmonics, harmonic_frequencies, phases):
@@ -198,6 +212,7 @@ def plotSignal(x, X, harmonics, harmonic_frequencies, phases):
     harmAmpPlt.set_title("Amplitude des harmoniques")
     harmAmpPlt.set_xlabel("Fréquence")
     harmAmpPlt.set_ylabel("Amplitude")
+    harmAmpPlt.set_yscale("log")
 
     harmPhasesPlt.stem(harmonic_frequencies, phases)
     harmPhasesPlt.set_title("Phase des harmoniques")
@@ -221,12 +236,12 @@ def plotSignal(x, X, harmonics, harmonic_frequencies, phases):
 if __name__ == "__main__":
     filter1kWave()
     signal, fs, fundamental, harmonicFrequencies, harmonics, phases = getSignalParameters('./note_guitare_lad.wav')
-    filterOrder = getFilterOrder(np.pi/1000)
+    filterOrder = getFilterOrder(np.pi / 1000)
     enveloppeTemporelle = applyLowpassFilter(signal, filterOrder)
-    
+
     noteFrequencies = generateNotes(fundamental)
-    
-    # synthetizeBeethoven(fs, harmonics, phases, enveloppeTemporelle)
+
+    # synthesizeBeethoven(fs, harmonics, phases, enveloppeTemporelle)
     # synthesizeAllNotesAudio(fs, harmonics, noteFrequencies, phases, enveloppeTemporelle)
-    
+
     plt.show()
